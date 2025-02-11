@@ -23,7 +23,7 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            padding-top: 80px;
+            padding-top: 90px;
         }
 
         .search-box {
@@ -65,6 +65,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
+            cursor: pointer;
         }
 
         .word-card:hover {
@@ -135,7 +136,68 @@
             display: flex;
             align-items: baseline;
         }
+
+        /* 添加发音按钮样式 */
+        .speak-button {
+            background: none;
+            border: none;
+            color: #2196F3;
+            cursor: pointer;
+            padding: 2px 6px;
+            margin-left: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .speak-button:hover {
+            background-color: #e3f2fd;
+        }
+
+        .speak-button i {
+            font-size: 16px;
+        }
+
+        /* 优化单词释义的样式 */
+        .definition {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.2s ease-out;
+            margin: 0;
+            padding: 0;
+        }
+
+        .definition.show {
+            max-height: 200px; /* 调整为更合适的高度 */
+            opacity: 1;
+            margin-top: 10px;
+            padding: 5px 0;
+        }
+
+        /* 优化展开/收起的指示器动画 */
+        .toggle-indicator {
+            float: right;
+            color: #666;
+            transition: all 0.2s ease-out;
+        }
+
+        .toggle-indicator.show {
+            transform: rotate(180deg);
+        }
+
+        /* 添加内容包装器来优化动画 */
+        .definition-wrapper {
+            transform-origin: top;
+            transition: transform 0.2s ease-out;
+        }
+
+        .definition-wrapper.show {
+            transform: scaleY(1);
+        }
     </style>
+
+    <!-- 添加 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
 <body>
@@ -152,11 +214,21 @@
     <script src="data/verbs.js"></script>
 
     <script>
-        // 格式化词形显示
+        // 添加语音功能
+        function speak(text, lang = 'en-US') {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 更新格式化词形显示函数
         function formatVerbForm(word, phonetic) {
             return `
                 <span>${word}</span>
                 <span class="pronunciation">${phonetic}</span>
+                <button class="speak-button" onclick="speak('${word}')">
+                    <i class="fas fa-volume-up"></i>
+                </button>
             `;
         }
 
@@ -164,10 +236,11 @@
         const renderWords = (words) => {
             const container = document.getElementById('wordList');
             container.innerHTML = words.map(word => `
-                <div class="word-card">
+                <div class="word-card" onclick="toggleDefinition(event, this)">
                     <h3 class="word-header">
                         ${word.word}
                         <span class="word-type">${word.type}</span>
+                        <i class="fas fa-chevron-down toggle-indicator"></i>
                     </h3>
                     <div class="word-forms">
                         <div class="word-form">
@@ -190,7 +263,11 @@
                         </div>
                     </div>
                     <div>${word.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
-                    <p><strong>释义：</strong>${word.definition}</p>
+                    <div class="definition">
+                        <div class="definition-wrapper">
+                            <strong>释义：</strong>${word.definition}
+                        </div>
+                    </div>
                 </div>
             `).join('');
         }
@@ -213,6 +290,22 @@
 
         // 初始化真实数据
         renderWords(verbsData);
+
+        // 优化切换释义显示的函数
+        function toggleDefinition(event, element) {
+            // 防止发音按钮点击事件冒泡
+            if (event.target.closest('.speak-button')) {
+                return;
+            }
+            
+            const definition = element.querySelector('.definition');
+            const definitionWrapper = element.querySelector('.definition-wrapper');
+            const indicator = element.querySelector('.toggle-indicator');
+            
+            definition.classList.toggle('show');
+            definitionWrapper.classList.toggle('show');
+            indicator.classList.toggle('show');
+        }
     </script>
 </body>
 
