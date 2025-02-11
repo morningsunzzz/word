@@ -228,38 +228,63 @@
     <script src="data/verbs.js"></script>
 
     <script>
-        // 添加音频管理
-        let currentAudio = null;
+        // 添加音频管理和防抖控制
+        const audioManager = {
+            currentAudio: null,
+            isPlaying: false,
+            
+            play: function(word) {
+                // 如果正在播放，直接返回
+                if (this.isPlaying) {
+                    return;
+                }
+                
+                // 如果有之前的音频，停止它
+                if (this.currentAudio) {
+                    this.currentAudio.pause();
+                    this.currentAudio.currentTime = 0;
+                }
+                
+                this.isPlaying = true;
+                
+                // 创建新的音频实例
+                this.currentAudio = new Audio(`https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`);
+                
+                // 播放完成后的处理
+                this.currentAudio.onended = () => {
+                    this.isPlaying = false;
+                    this.currentAudio = null;
+                };
+                
+                // 错误处理
+                this.currentAudio.onerror = () => {
+                    this.isPlaying = false;
+                    this.currentAudio = null;
+                    console.error('音频播放失败');
+                };
+                
+                // 播放音频
+                this.currentAudio.play()
+                    .catch(error => {
+                        console.error('播放失败:', error);
+                        this.isPlaying = false;
+                        this.currentAudio = null;
+                    });
+            }
+        };
 
         // 更新发音功能
         function speak(word) {
-            // 如果当前有音频在播放，先停止它
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-            }
-
-            // 创建新的音频实例
-            currentAudio = new Audio(`https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`);
-            
-            // 播放完成后清理资源
-            currentAudio.onended = function() {
-                currentAudio = null;
-            };
-
-            // 播放音频
-            currentAudio.play().catch(error => {
-                console.error('播放失败:', error);
-                currentAudio = null;
-            });
+            audioManager.play(word);
         }
 
-        // 更新格式化词形显示函数，添加防抖动处理
+        // 更新格式化词形显示函数
         function formatVerbForm(word, phonetic) {
             return `
                 <span>${word}</span>
                 <span class="pronunciation">${phonetic}</span>
-                <button class="speak-button" onclick="event.stopPropagation(); if(!this.disabled) { this.disabled=true; speak('${word}'); setTimeout(() => this.disabled=false, 800); }">
+                <button class="speak-button" 
+                    onclick="event.stopPropagation(); speak('${word.replace(/'/g, "\\'")}')">
                     <i class="fas fa-volume-up"></i>
                 </button>
             `;
