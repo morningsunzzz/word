@@ -66,6 +66,8 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
             cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .word-card:hover {
@@ -147,10 +149,21 @@
             margin-left: 4px;
             border-radius: 4px;
             transition: background-color 0.2s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .speak-button:hover {
             background-color: #e3f2fd;
+        }
+
+        .speak-button:active {
+            background-color: #e3f2fd;
+            transform: none;
+        }
+
+        .speak-button:focus {
+            outline: none;
         }
 
         .speak-button i {
@@ -165,6 +178,7 @@
             transition: all 0.2s ease-out;
             margin: 0;
             padding: 0;
+            user-select: text;
         }
 
         .definition.show {
@@ -214,19 +228,38 @@
     <script src="data/verbs.js"></script>
 
     <script>
-        // 添加语音功能
-        function speak(text, lang = 'en-US') {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = lang;
-            window.speechSynthesis.speak(utterance);
+        // 添加音频管理
+        let currentAudio = null;
+
+        // 更新发音功能
+        function speak(word) {
+            // 如果当前有音频在播放，先停止它
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+
+            // 创建新的音频实例
+            currentAudio = new Audio(`https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`);
+            
+            // 播放完成后清理资源
+            currentAudio.onended = function() {
+                currentAudio = null;
+            };
+
+            // 播放音频
+            currentAudio.play().catch(error => {
+                console.error('播放失败:', error);
+                currentAudio = null;
+            });
         }
 
-        // 更新格式化词形显示函数
+        // 更新格式化词形显示函数，添加防抖动处理
         function formatVerbForm(word, phonetic) {
             return `
                 <span>${word}</span>
                 <span class="pronunciation">${phonetic}</span>
-                <button class="speak-button" onclick="speak('${word}')">
+                <button class="speak-button" onclick="event.stopPropagation(); if(!this.disabled) { this.disabled=true; speak('${word}'); setTimeout(() => this.disabled=false, 800); }">
                     <i class="fas fa-volume-up"></i>
                 </button>
             `;
